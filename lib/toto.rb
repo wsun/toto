@@ -169,6 +169,11 @@ module Toto
         type == :html ? to_html(:layout, @config, &Proc.new { content }) : send(:"to_#{type}", page)
       end
 
+      # rendering partials in toto
+      def to_partial page
+        to_html page, @config
+      end
+
       def to_xml page
         xml = Builder::XmlMarkup.new(:indent => 2)
         instance_eval File.read("#{Paths[:templates]}/#{page}.builder")
