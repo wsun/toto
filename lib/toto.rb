@@ -169,7 +169,7 @@ module Toto
         type == :html ? to_html(:layout, @config, &Proc.new { content }) : send(:"to_#{type}", page)
       end
 
-      # rendering partials in toto
+      ##### rendering partials in toto
       def to_partial page
         to_html page, @config
       end
@@ -264,7 +264,13 @@ module Toto
       else
         self[:body].match(/(.{1,#{length || config[:length] || config[:max]}}.*?)(\n|\Z)/m).to_s
       end
-      markdown(sum.length == self[:body].length ? sum : sum.strip.sub(/\.\Z/, '&hellip;'))
+
+      ##### watch for punctuation before the ellipsis!
+      last = sum.split('').reverse.find { |c| not c =~ /\s/ }
+      kill = sum.length == self[:body].length || 
+             last == '.' || last == '?' || last == '!'
+
+      markdown(kill ? sum : sum.strip.sub(/\.\Z/, '&hellip;'))
     end
 
     def url
