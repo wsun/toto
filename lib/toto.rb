@@ -90,7 +90,14 @@ module Toto
     end
 
     def article route
-      Article.new("#{Paths[:articles]}/#{route.join('-')}.#{self[:ext]}", @config).load
+      ##### old links should still work
+      if route.first =~ /\d{4}/
+        realpath = "#{Paths[:articles]}/#{route.join('-')}.#{self[:ext]}"
+      ##### find the article filename, since the route no longer contains date info
+      else 
+        realpath = Dir["#{Paths[:articles]}/*-*-*-#{route.join('-')}.#{self[:ext]}"].first
+      end
+      Article.new(realpath, @config).load
     end
 
     def /
@@ -103,8 +110,11 @@ module Toto
       context = lambda do |data, page|
         Context.new(data, @config, path, env).render(page, type)
       end
-
       body, status = if Context.new.respond_to?(:"to_#{type}")
+
+        ##### pull the article list for routing purposes below
+        titles = self.articles.map{ |a| a.gsub(/articles\/\d{4}-\d{2}-\d{2}-(\S*).md/, '\1') }
+
         if route.first =~ /\d{4}/
           case route.size
             when 1..3
@@ -113,6 +123,11 @@ module Toto
               context[article(route), :article]
             else http 400
           end
+
+        ##### no more date nonsense, go straight to the article
+        elsif titles.include? route.first
+          context[article(route), :article]
+        
         elsif respond_to?(path)
           context[send(path, type), path.to_sym]
         elsif (repo = @config[:github][:repos].grep(/#{path}/).first) &&
@@ -282,8 +297,9 @@ module Toto
       markdown self[:body].sub(@config[:summary][:delim], '') rescue markdown self[:body]
     end
 
+    ##### adjust article paths to only be the title
     def path
-      "/#{@config[:prefix]}#{self[:date].strftime("/%Y/%m/%d/#{slug}/")}".squeeze('/')
+      "/#{@config[:prefix]}#{slug}".squeeze('/')
     end
 
     def title()   self[:title] || "an article"               end
